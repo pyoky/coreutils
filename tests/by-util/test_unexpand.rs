@@ -157,6 +157,41 @@ fn unexpand_read_from_two_file() {
 }
 
 #[test]
+fn test_tabs_shortcut() {
+    new_ucmd!()
+        .arg("-3")
+        .pipe_in("   a   b")
+        .run()
+        .stdout_is("\ta   b");
+}
+
+#[test]
+fn test_tabs_shortcut_combined_with_all_arg() {
+    fn run_cmd(all_arg: &str) {
+        new_ucmd!()
+            .args(&[all_arg, "-3"])
+            .pipe_in("a  b  c")
+            .run()
+            .stdout_is("a\tb\tc");
+    }
+
+    let all_args = vec!["-a", "--all"];
+
+    for arg in all_args {
+        run_cmd(arg);
+    }
+}
+
+#[test]
+fn test_comma_separated_tabs_shortcut() {
+    new_ucmd!()
+        .args(&["-a", "-3,9"])
+        .pipe_in("a  b     c")
+        .run()
+        .stdout_is("a\tb\tc");
+}
+
+#[test]
 fn test_tabs_cannot_be_zero() {
     new_ucmd!()
         .arg("--tabs=0")
@@ -182,4 +217,12 @@ fn test_tabs_with_invalid_chars() {
         .arg("--tabs=1x2")
         .fails()
         .stderr_contains("tab size contains invalid character(s): 'x2'");
+}
+
+#[test]
+fn test_tabs_shortcut_with_too_large_size() {
+    let arg = format!("-{}", u128::MAX);
+    let expected_error = "tab stop value is too large";
+
+    new_ucmd!().arg(arg).fails().stderr_contains(expected_error);
 }

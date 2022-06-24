@@ -7,7 +7,7 @@
 //  * For the full copyright and license information, please view the LICENSE
 //  * file that was distributed with this source code.
 
-// spell-checker:ignore (ToDO) nums aflag uflag scol prevtab amode ctype cwidth nbytes lastcol pctype
+// spell-checker:ignore (ToDO) nums aflag uflag scol prevtab amode ctype cwidth nbytes lastcol pctype Preprocess
 
 #[macro_use]
 extern crate uucore;
@@ -16,6 +16,7 @@ use std::error::Error;
 use std::fmt;
 use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Read, Stdout, Write};
+use std::num::IntErrorKind;
 use std::str::from_utf8;
 use unicode_width::UnicodeWidthChar;
 use uucore::display::Quotable;
@@ -33,6 +34,7 @@ const DEFAULT_TABSTOP: usize = 8;
 enum ParseError {
     InvalidCharacter(String),
     TabSizeCannotBeZero,
+    TabSizeTooLarge,
     TabSizesMustBeAscending,
 }
 
@@ -46,6 +48,7 @@ impl fmt::Display for ParseError {
                 write!(f, "tab size contains invalid character(s): {}", s.quote())
             }
             Self::TabSizeCannotBeZero => write!(f, "tab size cannot be 0"),
+            Self::TabSizeTooLarge => write!(f, "tab stop value is too large"),
             Self::TabSizesMustBeAscending => write!(f, "tab sizes must be ascending"),
         }
     }
@@ -57,12 +60,16 @@ fn tabstops_parse(s: &str) -> Result<Vec<usize>, ParseError> {
     let mut nums = Vec::new();
 
     for word in words {
-        if let Ok(num) = word.parse() {
-            nums.push(num);
-        } else {
-            return Err(ParseError::InvalidCharacter(
-                word.trim_start_matches(char::is_numeric).to_string(),
-            ));
+        match word.parse::<usize>() {
+            Ok(num) => nums.push(num),
+            Err(e) => match e.kind() {
+                IntErrorKind::PosOverflow => return Err(ParseError::TabSizeTooLarge),
+                _ => {
+                    return Err(ParseError::InvalidCharacter(
+                        word.trim_start_matches(char::is_numeric).to_string(),
+                    ))
+                }
+            },
         }
     }
 
@@ -97,9 +104,9 @@ struct Options {
 
 impl Options {
     fn new(matches: &clap::ArgMatches) -> Result<Self, ParseError> {
-        let tabstops = match matches.value_of(options::TABS) {
+        let tabstops = match matches.values_of(options::TABS) {
             None => vec![DEFAULT_TABSTOP],
-            Some(s) => tabstops_parse(s)?,
+            Some(s) => tabstops_parse(&s.collect::<Vec<&str>>().join(","))?,
         };
 
         let aflag = (matches.is_present(options::ALL) || matches.is_present(options::TABS))
@@ -120,13 +127,49 @@ impl Options {
     }
 }
 
+/// Decide whether the character is either a digit or a comma.
+fn is_digit_or_comma(c: char) -> bool {
+    c.is_ascii_digit() || c == ','
+}
+
+/// Preprocess command line arguments and expand shortcuts. For example, "-7" is expanded to
+/// "--tabs=7 --first-only" and "-1,3" to "--tabs=1 --tabs=3 --first-only". However, if "-a" or
+/// "--all" is provided, "--first-only" is omitted.
+fn expand_shortcuts(args: &[String]) -> Vec<String> {
+    let mut processed_args = Vec::with_capacity(args.len());
+    let mut is_all_arg_provided = false;
+    let mut has_shortcuts = false;
+
+    for arg in args {
+        if arg.starts_with('-') && arg[1..].chars().all(is_digit_or_comma) {
+            arg[1..]
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .for_each(|s| processed_args.push(format!("--tabs={}", s)));
+            has_shortcuts = true;
+        } else {
+            processed_args.push(arg.to_string());
+
+            if arg == "--all" || arg == "-a" {
+                is_all_arg_provided = true;
+            }
+        }
+    }
+
+    if has_shortcuts && !is_all_arg_provided {
+        processed_args.push("--first-only".into());
+    }
+
+    processed_args
+}
+
 #[uucore::main]
 pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let args = args
         .collect_str(InvalidEncodingHandling::Ignore)
         .accept_any();
 
-    let matches = uu_app().get_matches_from(args);
+    let matches = uu_app().get_matches_from(expand_shortcuts(&args));
 
     unexpand(&Options::new(&matches)?).map_err_context(String::new)
 }
@@ -163,6 +206,7 @@ pub fn uu_app<'a>() -> Command<'a> {
                 .long(options::TABS)
                 .help("use comma separated LIST of tab positions or have tabs N characters apart instead of 8 (enables -a)")
                 .takes_value(true)
+                .multiple_occurrences(true)
                 .value_name("N, LIST")
         )
         .arg(
@@ -378,4 +422,16 @@ fn unexpand(options: &Options) -> std::io::Result<()> {
         }
     }
     output.flush()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::is_digit_or_comma;
+
+    #[test]
+    fn test_is_digit_or_comma() {
+        assert!(is_digit_or_comma('1'));
+        assert!(is_digit_or_comma(','));
+        assert!(!is_digit_or_comma('a'));
+    }
 }
