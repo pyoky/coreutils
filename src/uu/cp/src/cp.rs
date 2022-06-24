@@ -1666,8 +1666,7 @@ pub fn verify_target_type(sources: &[Source], target: &TargetSlice) -> CopyResul
             metadata.file_type().is_symlink()
         } else {
             false
-        }
-        // target.is_symlink(),
+        }, // target.is_symlink(),
     ) {
         (true, false, ..) => {
             return Err(format!("directory {} does not exist", target.quote()).into())
