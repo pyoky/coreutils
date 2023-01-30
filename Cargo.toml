@@ -392,7 +392,7 @@ regex = "1.6"
 sha1 = { version="0.10", features=["std"] }
 tempfile = "3"
 time = {version="0.3", features=["local-offset"]}
-unindent = "0.1"
+unindent = "0.2"
 uucore = { version=">=0.0.11", package="uucore", path="src/uucore", features=["entries", "process"] }
 walkdir = "2.2"
 atty = "0.2"
