@@ -340,7 +340,7 @@ dependencies = [
  "sha1",
  "tempfile",
  "textwrap 0.15.0",
- "time 0.3.9",
+ "time 0.3.18",
  "unindent",
  "unix_socket",
  "users",
@@ -1738,6 +1738,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde"
+version = "1.0.152"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
+
+[[package]]
 name = "sha1"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2008,21 +2014,32 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.9"
+version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2702e08a7a860f005826c6815dcac101b19b5eb330c27fe4a5928fec1d20ddd"
+checksum = "af0097eaf301d576d0b2aead7a59facab6d53cc636340f0291fab8446a2e8613"
 dependencies = [
  "itoa",
  "libc",
  "num_threads",
+ "serde",
+ "time-core",
  "time-macros",
 ]
 
 [[package]]
-name = "time-macros"
-version = "0.2.4"
+name = "time-core"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42657b1a6f4d817cda8e7a0ace261fe0cc946cf3a80314390b22cc61ae080792"
+checksum = "2e153e1f1acaef8acc537e68b44906d2db6436e2b35ac2c6b42640fff91f00fd"
+
+[[package]]
+name = "time-macros"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d967f99f534ca7e495c575c62638eebc2898a8c84c119b89e250477bc4ba16b2"
+dependencies = [
+ "time-core",
+]
 
 [[package]]
 name = "typenum"
@@ -2470,7 +2487,7 @@ dependencies = [
  "file_diff",
  "filetime",
  "libc",
- "time 0.3.9",
+ "time 0.3.18",
  "uucore",
 ]
 
@@ -2949,7 +2966,7 @@ version = "0.0.14"
 dependencies = [
  "clap 3.1.18",
  "filetime",
- "time 0.3.9",
+ "time 0.3.18",
  "uucore",
  "winapi 0.3.9",
 ]
@@ -3117,7 +3134,7 @@ dependencies = [
  "once_cell",
  "os_display",
  "thiserror",
- "time 0.3.9",
+ "time 0.3.18",
  "uucore_procs",
  "walkdir",
  "wild",
